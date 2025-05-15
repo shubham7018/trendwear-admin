@@ -8,6 +8,7 @@ const List = ({ token }) => {
   const [editModal, setEditModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [formData, setFormData] = useState({
+    id:'',
     name: '',
     category: '',
     price: '',
@@ -48,9 +49,11 @@ const List = ({ token }) => {
     }
   }
 
+
   const handleEdit = (product) => {
     setEditingProduct(product)
     setFormData({
+      id: product._id,
       name: product.name,
       category: product.category,
       price: product.price,
@@ -60,8 +63,11 @@ const List = ({ token }) => {
       sizes: product.sizes || [],
       bestseller: product.bestseller || false
     })
+
+    
     setEditModal(true)
   }
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -81,53 +87,18 @@ const List = ({ token }) => {
 
   const handleUpdate = async (e) => {
     e.preventDefault()
+    setEditModal(false)
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('category', formData.category)
-      formDataToSend.append('price', formData.price)
-      formDataToSend.append('description', formData.description)
-      formDataToSend.append('subCategory', formData.subCategory || '')
-      formDataToSend.append('sizes', JSON.stringify(formData.sizes || []))
-      formDataToSend.append('bestseller', formData.bestseller || false)
-      
-      // Handle image uploads
-      if (formData.image.length > 0) {
-        formData.image.forEach((file, index) => {
-          formDataToSend.append(`image${index + 1}`, file)
-        })
+      const updateUrl = `${backendUrl}/api/product/update`
+      const response = await axios.post(updateUrl, formData, { headers: { token } })
+      if(response.status === 200){
+        fetchList()
+        toast.success('Product Updated Successfully')
       }
 
-      const url = `${backendUrl}/api/product/${editingProduct._id}`
-      console.log('Update URL:', url)
-      console.log('Request data:', Object.fromEntries(formDataToSend))
-      console.log('Token:', token)
-
-      const response = await axios({
-        method: 'put',
-        url: url,
-        data: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          token
-        }
-      })
-
-      console.log('Response:', response.data)
-
-      if (response.data.success) {
-        toast.success('Product updated successfully')
-        setEditModal(false)
-        await fetchList()
-      } else {
-        toast.error(response.data.message)
-      }
     } catch (error) {
-      console.error('Full error:', error)
-      console.error('Error response:', error.response)
-      console.error('Error status:', error.response?.status)
-      console.error('Error data:', error.response?.data)
-      toast.error(error.response?.data?.message || error.message)
+      console.log('Error Updating Data', error)
+      toast.error('Failed to Update Product')
     }
   }
 
